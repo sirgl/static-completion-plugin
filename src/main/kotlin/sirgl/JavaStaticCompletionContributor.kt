@@ -10,6 +10,7 @@ import com.intellij.patterns.PsiJavaPatterns
 import com.intellij.psi.*
 import com.intellij.psi.impl.java.stubs.index.JavaMethodParameterTypesIndex
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.util.InheritanceUtil.*
 import com.intellij.util.ProcessingContext
 import com.siyeh.ig.psiutils.ImportUtils
 
@@ -48,11 +49,20 @@ class JavaStaticMethodPostfixProvider : CompletionProvider<CompletionParameters>
         return accessible && type.isAssignableFrom(receiverType)
     }
 
-    //TODO not only this type, but also all ancestors
     private fun getStaticFunctionsWithFirstArgumentType(type: PsiType, project: Project, place: PsiElement): Collection<PsiMethod> {
-        val name = PsiNameHelper.getShortClassName(type.canonicalText)
-        return methodParamIndex[name, project, GlobalSearchScope.allScope(project)]
-                .filter { it.hasModifierProperty("static") && isSuitable(method = it, receiverType = type, place = place) }
+        val refType = type as? PsiClassType
+        val set = HashSet<PsiMethod>()
+        if (refType == null) {
+            return emptyList()
+        }
+        val clazz = refType.resolve() ?: return emptyList()
+        processSupers(clazz, true, { currentClass ->
+            if(currentClass.qualifiedName?.equals(CommonClassNames.JAVA_LANG_OBJECT) == true) return@processSupers false
+            set.addAll(methodParamIndex[currentClass.name?:"", project, GlobalSearchScope.allScope(project)]
+                    .filter { it.hasModifierProperty("static") })
+            true
+        })
+        return set.filter {  isSuitable(method = it, receiverType = type, place = place) }
     }
 
     private val insertHandler = StaticMethodInsertHandler()
@@ -61,7 +71,6 @@ class JavaStaticMethodPostfixProvider : CompletionProvider<CompletionParameters>
             PrioritizedLookupElement.withPriority(LookupElementBuilder.create(method)
                     .withIcon(AllIcons.Nodes.Method)
                     .withPresentableText(method.containingClass?.name + "." + method.name + "(" + getParameterListText(method.parameterList) + ")")
-                    .strikeout()
                     .withInsertHandler(insertHandler), 0.001)
 
     private fun getParameterListText(parameterList: PsiParameterList) = parameterList.parameters.joinToString(separator = ", ")
