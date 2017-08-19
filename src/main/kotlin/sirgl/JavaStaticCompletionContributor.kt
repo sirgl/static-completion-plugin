@@ -57,9 +57,10 @@ class JavaStaticMethodPostfixProvider : CompletionProvider<CompletionParameters>
         }
         val clazz = refType.resolve() ?: return emptyList()
         processSupers(clazz, true, { currentClass ->
-            if(currentClass.qualifiedName?.equals(CommonClassNames.JAVA_LANG_OBJECT) == true) return@processSupers false
-            set.addAll(methodParamIndex[currentClass.name?:"", project, GlobalSearchScope.allScope(project)]
-                    .filter { it.hasModifierProperty("static") })
+            if(currentClass.qualifiedName?.equals(CommonClassNames.JAVA_LANG_OBJECT) != true) {
+                set.addAll(methodParamIndex[currentClass.name ?: "", project, GlobalSearchScope.allScope(project)]
+                        .filter { it.hasModifierProperty("static") })
+            }
             true
         })
         return set.filter {  isSuitable(method = it, receiverType = type, place = place) }
