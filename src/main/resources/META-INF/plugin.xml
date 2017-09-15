@@ -24,9 +24,14 @@
   -->
 
   <extensions defaultExtensionNs="com.intellij">
-    <!-- Add your extensions here -->
     <completion.contributor language="JAVA"
                             implementationClass="sirgl.JavaStaticCompletionContributor"/>
+
+    <projectConfigurable instance="sirgl.config.JavaStaticCompletionConfigurable"
+                         displayName="Java Static Completion"
+                         groupId="language"/>
+
+    <projectService serviceImplementation="sirgl.config.PersistentCompletionConfig" />
   </extensions>
 
   <actions>

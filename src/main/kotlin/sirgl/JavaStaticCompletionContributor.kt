@@ -13,6 +13,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.InheritanceUtil.*
 import com.intellij.util.ProcessingContext
 import com.siyeh.ig.psiutils.ImportUtils
+import sirgl.config.completionSettings
 
 
 class JavaStaticCompletionContributor : CompletionContributor() {
@@ -27,13 +28,15 @@ class JavaStaticMethodPostfixProvider : CompletionProvider<CompletionParameters>
     private val methodParamIndex = JavaMethodParameterTypesIndex.getInstance()
 
     override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext?, result: CompletionResultSet) {
-        if (parameters.invocationCount < 2) return
+        val project = parameters.editor.project ?: return
+        // TODO It is better to send notification through message bus, that it has been changed
+        val completionTimes = project.completionSettings.internalState.completionTimes
+        if (parameters.invocationCount < completionTimes) return
         parameters.withInvocationCount(2)
         val ref = parameters.position.containingFile.findReferenceAt(parameters.offset) ?: return
         val element = ref.element as? PsiReferenceExpression ?: return
         val type = element.qualifierExpression?.type ?: return
 
-        val project = parameters.editor.project ?: return
 
         //TODO settings
         //TODO priority?
